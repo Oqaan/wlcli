@@ -56,5 +56,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(len(result.Data.Monitors))
+	for _, m := range result.Data.Monitors {
+		for _, l := range m.Lines {
+			for _, d := range l.Departures.Departure {
+				fmt.Printf("%s %s %d\n", l.Name, l.Towards, d.DepartureTime.Countdown)
+			}
+		}
+	}
 }
