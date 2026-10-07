@@ -1,11 +1,42 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 )
+
+type MonitorResponse struct {
+	Data Data `json:"data"`
+}
+
+type Data struct {
+	Monitors []Monitor `json:"monitors"`
+}
+
+type Monitor struct {
+	Lines []Line `json:"lines"`
+}
+
+type Line struct {
+	Name       string     `json:"name"`
+	Towards    string     `json:"towards"`
+	Departures Departures `json:"departures"`
+}
+
+type Departures struct {
+	Departure []Departure `json:"departure"`
+}
+
+type Departure struct {
+	DepartureTime DepartureTime `json:"departureTime"`
+}
+
+type DepartureTime struct {
+	Countdown int `json:"countdown"`
+}
 
 func main() {
 	resp, err := http.Get("https://www.wienerlinien.at/ogd_realtime/monitor?stopId=4116")
@@ -20,5 +51,16 @@ func main() {
 	if resp.StatusCode > 299 {
 		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, body)
 	}
-	fmt.Printf("%s", body)
+	var result MonitorResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		log.Fatal(err)
+	}
+	for _, m := range result.Data.Monitors {
+		for _, l := range m.Lines {
+			for _, d := range l.Departures.Departure {
+				fmt.Printf("%s %s %d\n", l.Name, l.Towards, d.DepartureTime.Countdown)
+			}
+		}
+	}
 }
