@@ -29,6 +29,7 @@ type Line struct {
 	Departures Departures `json:"departures"`
 }
 
+// Departures is an extra wrapper object in the API response around the departure list
 type Departures struct {
 	Departure []Departure `json:"departure"`
 }
@@ -43,17 +44,21 @@ type DepartureTime struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("usage: wlcli <stopId> [<stopId> ...]")
+		log.Fatal("usage: wlcli <stop name>")
 	}
 
 	rows, err := loadStops()
 	if err != nil {
 		log.Fatal(err)
 	}
-	ids := findStopIDs(rows, os.Args[1])
-	fmt.Println(ids)
+	// The shell splits the arguments, so we need to join them back together, e.g. "Kagraner Platz"
+	name := strings.Join(os.Args[1:], " ")
+	ids := findStopIDs(rows, name)
+	if len(ids) == 0 {
+		log.Fatalf("no stop found: %s", name)
+	}
 
-	stopIDs := strings.Join(os.Args[1:], "&stopId=")
+	stopIDs := strings.Join(ids, "&stopId=")
 	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
 
 	resp, err := http.Get(apiURL)
@@ -90,7 +95,7 @@ func loadStops() ([][]string, error) {
 	}
 	defer resp.Body.Close()
 	reader := csv.NewReader(resp.Body)
-	reader.Comma = ';'
+	reader.Comma = ';' // The Wiener Linien CSV uses semicolons instead of commas
 	rows, err := reader.ReadAll()
 	if err != nil {
 		return nil, err
@@ -102,6 +107,7 @@ func loadStops() ([][]string, error) {
 func findStopIDs(rows [][]string, name string) []string {
 	var ids []string
 	for _, row := range rows {
+		// CSV columns: 0 = StopID, 2 = StopText (name)
 		if row[2] == name {
 			ids = append(ids, row[0])
 		}
