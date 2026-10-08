@@ -41,11 +41,15 @@ type DepartureTime struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("usage: wlcli <stopId>")
+		log.Fatal("usage: wlcli <stopId> [<stopId> ...]")
 	}
 
 	stopID := os.Args[1]
 	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopID
+
+	for _, arg := range os.Args[2:] {
+		apiURL += "&stopId=" + arg
+	}
 
 	resp, err := http.Get(apiURL)
 	if err != nil {
