@@ -6,6 +6,8 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 )
 
 type MonitorResponse struct {
@@ -39,7 +41,14 @@ type DepartureTime struct {
 }
 
 func main() {
-	resp, err := http.Get("https://www.wienerlinien.at/ogd_realtime/monitor?stopId=4116")
+	if len(os.Args) < 2 {
+		log.Fatal("usage: wlcli <stopId> [<stopId> ...]")
+	}
+
+	stopIDs := strings.Join(os.Args[1:], "&stopId=")
+	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
+
+	resp, err := http.Get(apiURL)
 	if err != nil {
 		log.Fatal(err)
 	}
