@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -45,6 +46,12 @@ func main() {
 		log.Fatal("usage: wlcli <stopId> [<stopId> ...]")
 	}
 
+	rows, err := loadStops()
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println("stops loaded:", len(rows))
+
 	stopIDs := strings.Join(os.Args[1:], "&stopId=")
 	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
 
@@ -72,4 +79,20 @@ func main() {
 			}
 		}
 	}
+}
+
+// loadStops downloads the stops CSV and returns all rows
+func loadStops() ([][]string, error) {
+	resp, err := http.Get("https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	reader := csv.NewReader(resp.Body)
+	reader.Comma = ';'
+	rows, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
 }
