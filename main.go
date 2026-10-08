@@ -50,7 +50,8 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("stops loaded:", len(rows))
+	ids := findStopIDs(rows, os.Args[1])
+	fmt.Println(ids)
 
 	stopIDs := strings.Join(os.Args[1:], "&stopId=")
 	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
@@ -95,4 +96,15 @@ func loadStops() ([][]string, error) {
 		return nil, err
 	}
 	return rows, nil
+}
+
+// findStopIDs returns the stop IDs of all rows whose name matches name
+func findStopIDs(rows [][]string, name string) []string {
+	var ids []string
+	for _, row := range rows {
+		if row[2] == name {
+			ids = append(ids, row[0])
+		}
+	}
+	return ids
 }
