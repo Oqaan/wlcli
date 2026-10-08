@@ -103,12 +103,13 @@ func loadStops() ([][]string, error) {
 	return rows, nil
 }
 
-// findStopIDs returns the stop IDs of all rows whose name matches name
+// findStopIDs returns the stop IDs of all rows whose name contains name (case-insensitive)
 func findStopIDs(rows [][]string, name string) []string {
 	var ids []string
+	search := strings.ToLower(name)
 	for _, row := range rows {
 		// CSV columns: 0 = StopID, 2 = StopText (name)
-		if row[2] == name {
+		if strings.Contains(strings.ToLower(row[2]), search) {
 			ids = append(ids, row[0])
 		}
 	}
