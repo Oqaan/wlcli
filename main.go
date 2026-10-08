@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,6 +29,7 @@ type Line struct {
 	Departures Departures `json:"departures"`
 }
 
+// Departures is an extra wrapper object in the API response around the departure list
 type Departures struct {
 	Departure []Departure `json:"departure"`
 }
@@ -42,10 +44,21 @@ type DepartureTime struct {
 
 func main() {
 	if len(os.Args) < 2 {
-		log.Fatal("usage: wlcli <stopId> [<stopId> ...]")
+		log.Fatal("usage: wlcli <stop name>")
 	}
 
-	stopIDs := strings.Join(os.Args[1:], "&stopId=")
+	rows, err := loadStops()
+	if err != nil {
+		log.Fatal(err)
+	}
+	// The shell splits the arguments, so we need to join them back together, e.g. "Kagraner Platz"
+	name := strings.Join(os.Args[1:], " ")
+	ids := findStopIDs(rows, name)
+	if len(ids) == 0 {
+		log.Fatalf("no stop found: %s", name)
+	}
+
+	stopIDs := strings.Join(ids, "&stopId=")
 	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
 
 	resp, err := http.Get(apiURL)
@@ -72,4 +85,33 @@ func main() {
 			}
 		}
 	}
+}
+
+// loadStops downloads the stops CSV and returns all rows
+func loadStops() ([][]string, error) {
+	resp, err := http.Get("https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	reader := csv.NewReader(resp.Body)
+	reader.Comma = ';' // The Wiener Linien CSV uses semicolons instead of commas
+	rows, err := reader.ReadAll()
+	if err != nil {
+		return nil, err
+	}
+	return rows, nil
+}
+
+// findStopIDs returns the stop IDs of all rows whose name contains name (case-insensitive)
+func findStopIDs(rows [][]string, name string) []string {
+	var ids []string
+	search := strings.ToLower(name)
+	for _, row := range rows {
+		// CSV columns: 0 = StopID, 2 = StopText (name)
+		if strings.Contains(strings.ToLower(row[2]), search) {
+			ids = append(ids, row[0])
+		}
+	}
+	return ids
 }
