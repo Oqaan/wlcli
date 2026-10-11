@@ -10,6 +10,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"text/tabwriter"
 )
 
 type MonitorResponse struct {
@@ -79,6 +80,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	fmt.Fprintf(w, "LINE\tDIRECTION\tNEXT\n")
+
 	for _, m := range result.Data.Monitors {
 		for _, l := range m.Lines {
 			var countdowns []string
@@ -88,9 +93,10 @@ func main() {
 					break
 				}
 			}
-			fmt.Printf("%s -> %s: %s\n", l.Name, strings.TrimSpace(l.Towards), strings.Join(countdowns, ", "))
+			fmt.Fprintf(w, "%s\t%s\t%s\n", l.Name, strings.TrimSpace(l.Towards), strings.Join(countdowns, ", "))
 		}
 	}
+	w.Flush()
 }
 
 // loadStops downloads the stops CSV and returns all rows
