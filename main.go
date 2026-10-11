@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -80,9 +81,14 @@ func main() {
 	}
 	for _, m := range result.Data.Monitors {
 		for _, l := range m.Lines {
+			var countdowns []string
 			for _, d := range l.Departures.Departure {
-				fmt.Printf("%s %s %d\n", l.Name, l.Towards, d.DepartureTime.Countdown)
+				countdowns = append(countdowns, strconv.Itoa(d.DepartureTime.Countdown))
+				if len(countdowns) >= 3 {
+					break
+				}
 			}
+			fmt.Printf("%s -> %s: %s\n", l.Name, strings.TrimSpace(l.Towards), strings.Join(countdowns, ", "))
 		}
 	}
 }
