@@ -8,7 +8,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"slices"
+	"strconv"
 	"strings"
+	"text/tabwriter"
 )
 
 type MonitorResponse struct {
@@ -40,6 +43,12 @@ type Departure struct {
 
 type DepartureTime struct {
 	Countdown int `json:"countdown"`
+}
+
+type row struct {
+	LineName   string
+	Direction  string
+	Countdowns []string
 }
 
 func main() {
@@ -78,13 +87,35 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
+	fmt.Fprintf(w, "LINE\tDIRECTION\tNEXT\n")
+
+	var tableRows []row
+
 	for _, m := range result.Data.Monitors {
 		for _, l := range m.Lines {
+			var countdowns []string
 			for _, d := range l.Departures.Departure {
-				fmt.Printf("%s %s %d\n", l.Name, l.Towards, d.DepartureTime.Countdown)
+				countdowns = append(countdowns, strconv.Itoa(d.DepartureTime.Countdown))
+				if len(countdowns) >= 3 {
+					break
+				}
 			}
+			tableRows = append(tableRows, row{
+				LineName:   l.Name,
+				Direction:  strings.TrimSpace(l.Towards),
+				Countdowns: countdowns,
+			})
 		}
 	}
+	slices.SortFunc(tableRows, func(a, b row) int {
+		return strings.Compare(a.LineName, b.LineName)
+	})
+	for _, r := range tableRows {
+		fmt.Fprintf(w, "%s\t%s\t%s\n", r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
+	}
+	w.Flush()
 }
 
 // loadStops downloads the stops CSV and returns all rows
