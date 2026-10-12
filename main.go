@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 )
 
 type MonitorResponse struct {
@@ -51,6 +52,9 @@ type row struct {
 	Countdowns []string
 }
 
+// client is a shared HTTP client with a timeout to avoid hanging requests
+var client = &http.Client{Timeout: 10 * time.Second}
+
 func main() {
 	if len(os.Args) < 2 {
 		log.Fatal("usage: wlcli <stop name>")
@@ -70,7 +74,7 @@ func main() {
 	stopIDs := strings.Join(ids, "&stopId=")
 	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
 
-	resp, err := http.Get(apiURL)
+	resp, err := client.Get(apiURL)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -120,7 +124,7 @@ func main() {
 
 // loadStops downloads the stops CSV and returns all rows
 func loadStops() ([][]string, error) {
-	resp, err := http.Get("https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv")
+	resp, err := client.Get("https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv")
 	if err != nil {
 		return nil, err
 	}
