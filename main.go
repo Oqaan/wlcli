@@ -56,8 +56,12 @@ type row struct {
 var client = &http.Client{Timeout: 10 * time.Second}
 
 func main() {
+	log.SetFlags(0) // Disable timestamps in log output
+	log.SetPrefix("wlcli: ")
+
 	if len(os.Args) < 2 {
-		log.Fatal("usage: wlcli <stop name>")
+		fmt.Fprintln(os.Stderr, "usage: wlcli <stop name>")
+		os.Exit(1)
 	}
 
 	rows, err := loadStops()
