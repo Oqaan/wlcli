@@ -55,6 +55,9 @@ type row struct {
 // client is a shared HTTP client with a timeout to avoid hanging requests
 var client = &http.Client{Timeout: 10 * time.Second}
 
+// maxStopIDs limits how many stop IDs are sent in one request, because the API rejects requests with too many
+const maxStopIDs = 100
+
 func main() {
 	log.SetFlags(0) // Disable timestamps in log output
 	log.SetPrefix("wlcli: ")
@@ -72,7 +75,10 @@ func main() {
 	name := strings.Join(os.Args[1:], " ")
 	ids := findStopIDs(rows, name)
 	if len(ids) == 0 {
-		log.Fatalf("no stop found: %s", name)
+		log.Fatalf("no stop found: %q", name)
+	}
+	if len(ids) > maxStopIDs {
+		log.Fatalf("%q matches %d stops (max %d), please be more specific.", name, len(ids), maxStopIDs)
 	}
 
 	result, err := fetchDepartures(ids)
