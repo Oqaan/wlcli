@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"log"
 	"os"
 	"slices"
 	"strconv"
 	"strings"
-	"text/tabwriter"
+
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/table"
 )
 
 type row struct {
@@ -44,9 +47,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintf(w, "LINE\tDIRECTION\tNEXT\n")
-
 	var tableRows []row
 
 	for _, m := range result.Data.Monitors {
@@ -68,8 +68,46 @@ func main() {
 	slices.SortFunc(tableRows, func(a, b row) int {
 		return strings.Compare(a.LineName, b.LineName)
 	})
+
+	t := table.New()
+	t.Headers("LINE", "DIRECTION", "NEXT")
+	t.Border(lipgloss.RoundedBorder())
+	t.BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("8")))
+	t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
+		style := lipgloss.NewStyle().Padding(0, 1)
+
+		if rowIndex == table.HeaderRow {
+			return style.Bold(true)
+		}
+		if colIndex == 0 {
+			name := tableRows[rowIndex].LineName
+			return style.Bold(true).Foreground(lineColor(name))
+		}
+		return style
+	})
+
 	for _, r := range tableRows {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
+		t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
 	}
-	w.Flush()
+	lipgloss.Println(t)
+}
+
+// lineColor returns the official Wiener Linien color for U-Bahn lines
+func lineColor(lineName string) color.Color {
+	switch lineName {
+	case "U1":
+		return lipgloss.Color("#E3000F")
+	case "U2":
+		return lipgloss.Color("#A862A4")
+	case "U3":
+		return lipgloss.Color("#EF7C00")
+	case "U4":
+		return lipgloss.Color("#00963F")
+	case "U5":
+		return lipgloss.Color("#008F95")
+	case "U6":
+		return lipgloss.Color("#9D6830")
+	default:
+		return lipgloss.NoColor{}
+	}
 }
