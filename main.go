@@ -7,7 +7,9 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-	"text/tabwriter"
+
+	"charm.land/lipgloss/v2"
+	"charm.land/lipgloss/v2/table"
 )
 
 type row struct {
@@ -44,8 +46,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	w := tabwriter.NewWriter(os.Stdout, 0, 0, 3, ' ', 0)
-	fmt.Fprintf(w, "LINE\tDIRECTION\tNEXT\n")
+	t := table.New()
+	t.Headers("LINE", "DIRECTION", "NEXT")
+	t.Border(lipgloss.RoundedBorder())
 
 	var tableRows []row
 
@@ -69,7 +72,7 @@ func main() {
 		return strings.Compare(a.LineName, b.LineName)
 	})
 	for _, r := range tableRows {
-		fmt.Fprintf(w, "%s\t%s\t%s\n", r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
+		t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
 	}
-	w.Flush()
+	lipgloss.Println(t)
 }
