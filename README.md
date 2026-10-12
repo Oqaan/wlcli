@@ -37,18 +37,21 @@ wlcli schwedenplatz
 ```
 
 ```text
-LINE   DIRECTION                NEXT
-1      Stefan-Fadinger-Platz    2, 11, 21
-1      Prater Hauptallee        2, 13, 24
-2      Friedrich-Engels-Platz   0, 11, 21
-2      Dornbach                 3, 13, 23
-U1     Leopoldau                2, 7, 13
-U1     Oberlaa                  1, 4, 10
-U4     Heiligenstadt            3, 9, 14
-U4     Hütteldorf               1, 6, 14
+╭──────┬────────────────────────┬────────────╮
+│ LINE │ DIRECTION              │ NEXT       │
+├──────┼────────────────────────┼────────────┤
+│ 1    │ Stefan-Fadinger-Platz  │ 0, 10, 16  │
+│ 1    │ Prater Hauptallee      │ 0, 11, 23  │
+│ 2    │ Friedrich-Engels-Platz │ 10, 20, 30 │
+│ 2    │ Dornbach               │ 1, 13, 25  │
+│ U1   │ Leopoldau              │ 3, 11, 19  │
+│ U1   │ Oberlaa                │ 4, 13, 19  │
+│ U4   │ Heiligenstadt          │ 1, 8, 15   │
+│ U4   │ Hütteldorf             │ 6, 13, 20  │
+╰──────┴────────────────────────┴────────────╯
 ```
 
-`NEXT` shows the next three departures in minutes.
+`NEXT` shows the next three departures in minutes. In the terminal, U-Bahn lines are shown in their official Wiener Linien colors.
 
 - The search is case-insensitive and matches partial names, so `wlcli kagraner platz` also finds the tram and bus stops named "Kagraner Platz U".
 - Quotes around the stop name are optional: `wlcli Kagraner Platz` and `wlcli "Kagraner Platz"` do the same thing.
@@ -58,7 +61,7 @@ U4     Hütteldorf               1, 6, 14
 
 1. Downloads the [list of stops](https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv) and finds all stop IDs whose name contains the search term.
 2. Requests the real-time departures for these stop IDs from the `/monitor` endpoint.
-3. Prints one row per line and direction, sorted by line.
+3. Prints one row per line and direction, sorted by line, as a table rendered with [Lip Gloss](https://github.com/charmbracelet/lipgloss).
 
 ## Data source
 
