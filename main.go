@@ -126,14 +126,17 @@ func main() {
 func loadStops() ([][]string, error) {
 	resp, err := client.Get("https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("downloading stops: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("downloading stops: unexpected status %s", resp.Status)
+	}
 	reader := csv.NewReader(resp.Body)
 	reader.Comma = ';' // The Wiener Linien CSV uses semicolons instead of commas
 	rows, err := reader.ReadAll()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading stops CSV: %w", err)
 	}
 	return rows, nil
 }
