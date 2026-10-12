@@ -71,23 +71,7 @@ func main() {
 		log.Fatalf("no stop found: %s", name)
 	}
 
-	stopIDs := strings.Join(ids, "&stopId=")
-	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
-
-	resp, err := client.Get(apiURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if resp.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, body)
-	}
-	var result MonitorResponse
-	err = json.Unmarshal(body, &result)
+	result, err := fetchDepartures(ids)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -139,6 +123,31 @@ func loadStops() ([][]string, error) {
 		return nil, fmt.Errorf("reading stops CSV: %w", err)
 	}
 	return rows, nil
+}
+
+// fetchDepartures requests the real-time departures for the given stop IDs
+func fetchDepartures(ids []string) (MonitorResponse, error) {
+	stopIDs := strings.Join(ids, "&stopId=")
+	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
+
+	resp, err := client.Get(apiURL)
+	if err != nil {
+		return MonitorResponse{}, fmt.Errorf("fetching departures: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return MonitorResponse{}, fmt.Errorf("fetching departures: unexpected status %s", resp.Status)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return MonitorResponse{}, fmt.Errorf("reading departure response: %w", err)
+	}
+	var result MonitorResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return MonitorResponse{}, fmt.Errorf("unmarshaling departure response: %w", err)
+	}
+	return result, nil
 }
 
 // findStopIDs returns the stop IDs of all rows whose name contains name (case-insensitive)
