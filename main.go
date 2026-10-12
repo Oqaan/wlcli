@@ -12,10 +12,16 @@ import (
 	"strconv"
 	"strings"
 	"text/tabwriter"
+	"time"
 )
 
 type MonitorResponse struct {
-	Data Data `json:"data"`
+	Data    Data    `json:"data"`
+	Message Message `json:"message"`
+}
+
+type Message struct {
+	Value string `json:"value"`
 }
 
 type Data struct {
@@ -51,9 +57,19 @@ type row struct {
 	Countdowns []string
 }
 
+// client is a shared HTTP client with a timeout to avoid hanging requests
+var client = &http.Client{Timeout: 10 * time.Second}
+
+// maxStopIDs limits how many stop IDs are sent in one request, because the API rejects requests with too many
+const maxStopIDs = 100
+
 func main() {
+	log.SetFlags(0) // Disable timestamps in log output
+	log.SetPrefix("wlcli: ")
+
 	if len(os.Args) < 2 {
-		log.Fatal("usage: wlcli <stop name>")
+		fmt.Fprintln(os.Stderr, "usage: wlcli <stop name>")
+		os.Exit(1)
 	}
 
 	rows, err := loadStops()
@@ -64,26 +80,13 @@ func main() {
 	name := strings.Join(os.Args[1:], " ")
 	ids := findStopIDs(rows, name)
 	if len(ids) == 0 {
-		log.Fatalf("no stop found: %s", name)
+		log.Fatalf("no stop found: %q", name)
+	}
+	if len(ids) > maxStopIDs {
+		log.Fatalf("%q matches %d stops (max %d), please be more specific.", name, len(ids), maxStopIDs)
 	}
 
-	stopIDs := strings.Join(ids, "&stopId=")
-	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
-
-	resp, err := http.Get(apiURL)
-	if err != nil {
-		log.Fatal(err)
-	}
-	body, err := io.ReadAll(resp.Body)
-	resp.Body.Close()
-	if err != nil {
-		log.Fatal(err)
-	}
-	if resp.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", resp.StatusCode, body)
-	}
-	var result MonitorResponse
-	err = json.Unmarshal(body, &result)
+	result, err := fetchDepartures(ids)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -120,28 +123,61 @@ func main() {
 
 // loadStops downloads the stops CSV and returns all rows
 func loadStops() ([][]string, error) {
-	resp, err := http.Get("https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv")
+	resp, err := client.Get("https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("downloading stops: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("downloading stops: unexpected status %s", resp.Status)
+	}
 	reader := csv.NewReader(resp.Body)
 	reader.Comma = ';' // The Wiener Linien CSV uses semicolons instead of commas
 	rows, err := reader.ReadAll()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("reading stops CSV: %w", err)
 	}
 	return rows, nil
+}
+
+// fetchDepartures requests the real-time departures for the given stop IDs
+func fetchDepartures(ids []string) (MonitorResponse, error) {
+	stopIDs := strings.Join(ids, "&stopId=")
+	apiURL := "https://www.wienerlinien.at/ogd_realtime/monitor?stopId=" + stopIDs
+
+	resp, err := client.Get(apiURL)
+	if err != nil {
+		return MonitorResponse{}, fmt.Errorf("fetching departures: %w", err)
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return MonitorResponse{}, fmt.Errorf("reading departure response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		var apiResult MonitorResponse
+		_ = json.Unmarshal(body, &apiResult) // Try to get the API's error message; the body may not be JSON (e.g. an HTML error page), so ignore errors.
+		if apiResult.Message.Value != "" {
+			return MonitorResponse{}, fmt.Errorf("fetching departures: %s: %s", resp.Status, apiResult.Message.Value)
+		}
+		return MonitorResponse{}, fmt.Errorf("fetching departures: unexpected status %s", resp.Status)
+	}
+	var result MonitorResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return MonitorResponse{}, fmt.Errorf("unmarshaling departure response: %w", err)
+	}
+	return result, nil
 }
 
 // findStopIDs returns the stop IDs of all rows whose name contains name (case-insensitive)
 func findStopIDs(rows [][]string, name string) []string {
 	var ids []string
 	search := strings.ToLower(name)
-	for _, row := range rows {
+	for _, record := range rows {
 		// CSV columns: 0 = StopID, 2 = StopText (name)
-		if strings.Contains(strings.ToLower(row[2]), search) {
-			ids = append(ids, row[0])
+		if strings.Contains(strings.ToLower(record[2]), search) {
+			ids = append(ids, record[0])
 		}
 	}
 	return ids
