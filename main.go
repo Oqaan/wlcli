@@ -49,6 +49,9 @@ func main() {
 	t := table.New()
 	t.Headers("LINE", "DIRECTION", "NEXT")
 	t.Border(lipgloss.RoundedBorder())
+	t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
+		return lipgloss.NewStyle().Padding(0, 1)
+	})
 
 	var tableRows []row
 
