@@ -16,7 +16,12 @@ import (
 )
 
 type MonitorResponse struct {
-	Data Data `json:"data"`
+	Data    Data    `json:"data"`
+	Message Message `json:"message"`
+}
+
+type Message struct {
+	Value string `json:"value"`
 }
 
 type Data struct {
@@ -145,12 +150,17 @@ func fetchDepartures(ids []string) (MonitorResponse, error) {
 		return MonitorResponse{}, fmt.Errorf("fetching departures: %w", err)
 	}
 	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return MonitorResponse{}, fmt.Errorf("fetching departures: unexpected status %s", resp.Status)
-	}
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return MonitorResponse{}, fmt.Errorf("reading departure response: %w", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		var apiResult MonitorResponse
+		_ = json.Unmarshal(body, &apiResult) // Try to get the API's error message; the body may not be JSON (e.g. an HTML error page), so ignore errors.
+		if apiResult.Message.Value != "" {
+			return MonitorResponse{}, fmt.Errorf("fetching departures: %s: %s", resp.Status, apiResult.Message.Value)
+		}
+		return MonitorResponse{}, fmt.Errorf("fetching departures: unexpected status %s", resp.Status)
 	}
 	var result MonitorResponse
 	err = json.Unmarshal(body, &result)
