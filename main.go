@@ -138,10 +138,10 @@ func loadStops() ([][]string, error) {
 func findStopIDs(rows [][]string, name string) []string {
 	var ids []string
 	search := strings.ToLower(name)
-	for _, row := range rows {
+	for _, record := range rows {
 		// CSV columns: 0 = StopID, 2 = StopText (name)
-		if strings.Contains(strings.ToLower(row[2]), search) {
-			ids = append(ids, row[0])
+		if strings.Contains(strings.ToLower(record[2]), search) {
+			ids = append(ids, record[0])
 		}
 	}
 	return ids
