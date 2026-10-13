@@ -5,6 +5,8 @@ import (
 	"testing"
 )
 
+// testRows is a small fake version of the stops CSV
+// Only column 0 (StopID) and column 2 (StopText) are used by findStopIDs
 var testRows = [][]string{
 	{"StopID", "DIVA", "StopText"},
 	{"4181", "", "Kagraner Platz"},
@@ -25,6 +27,7 @@ func TestFindStopIDs(t *testing.T) {
 		{"uppercase", "SCHWEDENPLATZ", []string{"4116"}},
 		{"mixed case", "SchWeDeNpLaTz", []string{"4116"}},
 		{"no match", "Nonexistent Stop", []string{}},
+		{"header is not a stop", "text", []string{}},
 	}
 
 	for _, tt := range tests {
