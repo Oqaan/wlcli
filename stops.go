@@ -33,7 +33,7 @@ func loadStops() ([][]string, error) {
 func findStopIDs(rows [][]string, name string) []string {
 	var ids []string
 	search := strings.ToLower(name)
-	for _, record := range rows {
+	for _, record := range rows[1:] { // Skip the header row
 		// CSV columns: 0 = StopID, 2 = StopText (name)
 		if strings.Contains(strings.ToLower(record[2]), search) {
 			ids = append(ids, record[0])
