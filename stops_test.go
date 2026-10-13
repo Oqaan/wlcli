@@ -10,37 +10,29 @@ var testRows = [][]string{
 	{"4181", "", "Kagraner Platz"},
 	{"885", "", "Kagraner Platz U"},
 	{"4116", "", "Schwedenplatz"},
+	{"4127", "", "Kagran"},
 }
 
 func TestFindStopIDs(t *testing.T) {
-	got := findStopIDs(testRows, "Schwedenplatz")
-
-	want := []string{"4116"}
-	if !slices.Equal(got, want) {
-		t.Errorf("findStopIDs(%q) = %v, want %v", "Schwedenplatz", got, want)
+	tests := []struct {
+		name   string
+		search string
+		want   []string
+	}{
+		{"exact name", "Schwedenplatz", []string{"4116"}},
+		{"partial name", "Kagraner Platz", []string{"4181", "885"}},
+		{"lowercase", "schwedenplatz", []string{"4116"}},
+		{"uppercase", "SCHWEDENPLATZ", []string{"4116"}},
+		{"mixed case", "SchWeDeNpLaTz", []string{"4116"}},
+		{"no match", "Nonexistent Stop", []string{}},
 	}
-}
 
-func TestFindStopIDsPartialName(t *testing.T) {
-	got := findStopIDs(testRows, "Kagraner Platz")
-	want := []string{"4181", "885"}
-	if !slices.Equal(got, want) {
-		t.Errorf("findStopIDs(%q) = %v, want %v", "Kagraner Platz", got, want)
-	}
-}
-
-func TestFindStopIDsLowercase(t *testing.T) {
-	got := findStopIDs(testRows, "schwedenplatz")
-	want := []string{"4116"}
-	if !slices.Equal(got, want) {
-		t.Errorf("findStopIDs(%q) = %v, want %v", "schwedenplatz", got, want)
-	}
-}
-
-func TestFindStopIDsNoMatch(t *testing.T) {
-	got := findStopIDs(testRows, "Nonexistent Stop")
-	want := []string{}
-	if !slices.Equal(got, want) {
-		t.Errorf("findStopIDs(%q) = %v, want %v", "Nonexistent Stop", got, want)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := findStopIDs(testRows, tt.search)
+			if !slices.Equal(got, tt.want) {
+				t.Errorf("findStopIDs(%q) = %v, want %v", tt.search, got, tt.want)
+			}
+		})
 	}
 }
