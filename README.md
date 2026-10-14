@@ -6,6 +6,8 @@ Real-time Vienna public transport departures in your terminal, written in Go.
 
 Type a stop name and `wlcli` shows the next departures of every line that stops there (U-Bahn, tram and bus), using the official Wiener Linien real-time API.
 
+![wlcli demo](demo.gif)
+
 ## Installation
 
 Requires [Go](https://go.dev/dl/) 1.25 or newer.
