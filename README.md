@@ -59,6 +59,7 @@ wlcli schwedenplatz
 
 - The search is case-insensitive and matches partial names, so `wlcli kagraner platz` also finds the tram and bus stops named "Kagraner Platz U".
 - Quotes around the stop name are optional: `wlcli Kagraner Platz` and `wlcli "Kagraner Platz"` do the same thing.
+- `wlcli --version` (or `-v`) prints the installed version.
 - Very generic searches (e.g. `platz`) match hundreds of stops. `wlcli` rejects searches with more than 100 matching stop IDs and asks you to be more specific.
 
 ## How it works

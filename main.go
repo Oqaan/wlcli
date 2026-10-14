@@ -5,6 +5,7 @@ import (
 	"image/color"
 	"log"
 	"os"
+	"runtime/debug"
 	"slices"
 	"strconv"
 	"strings"
@@ -23,8 +24,14 @@ func main() {
 	log.SetFlags(0) // Disable timestamps in log output
 	log.SetPrefix("wlcli: ")
 
+	if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+		fmt.Println("wlcli", version())
+		return
+	}
+
 	if len(os.Args) < 2 {
 		fmt.Fprintln(os.Stderr, "usage: wlcli <stop name>")
+		fmt.Fprintln(os.Stderr, "       wlcli -v | --version")
 		os.Exit(1)
 	}
 
@@ -110,4 +117,12 @@ func lineColor(lineName string) color.Color {
 	default:
 		return lipgloss.NoColor{}
 	}
+}
+
+func version() string {
+	info, ok := debug.ReadBuildInfo()
+	if !ok {
+		return "unknown"
+	}
+	return info.Main.Version
 }
