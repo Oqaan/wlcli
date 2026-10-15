@@ -126,3 +126,7 @@ func version() string {
 	}
 	return info.Main.Version
 }
+
+func compareLines(a, b string) int {
+	return 0
+}

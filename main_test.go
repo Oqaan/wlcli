@@ -2,6 +2,7 @@ package main
 
 import (
 	"image/color"
+	"slices"
 	"testing"
 
 	"charm.land/lipgloss/v2"
@@ -26,5 +27,16 @@ func TestLineColor(t *testing.T) {
 				t.Errorf("lineColor(%q) = %v, want %v", tt.lineName, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestCompareLines(t *testing.T) {
+	lines := []string{"N25", "13A", "U4", "D", "4A", "2", "U1", "13B"}
+	want := []string{"U1", "U4", "D", "2", "4A", "13A", "13B", "N25"}
+
+	slices.SortFunc(lines, compareLines)
+
+	if !slices.Equal(lines, want) {
+		t.Errorf("sorted lines = %v, want %v", lines, want)
 	}
 }
