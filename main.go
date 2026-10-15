@@ -73,7 +73,7 @@ func main() {
 		}
 	}
 	slices.SortFunc(tableRows, func(a, b row) int {
-		return strings.Compare(a.LineName, b.LineName)
+		return compareLines(a.LineName, b.LineName)
 	})
 
 	t := table.New()
@@ -125,4 +125,50 @@ func version() string {
 		return "unknown"
 	}
 	return info.Main.Version
+}
+
+// lineSortKey returns the group and number used to sort a line name
+// Group 0 is U-Bahn, 1 is tram and bus, 2 is night lines
+func lineSortKey(name string) (group int, number int) {
+	group = 1
+	rest := name
+
+	if len(name) > 0 {
+		switch name[0] {
+		case 'U':
+			group = 0
+			rest = name[1:]
+		case 'N':
+			group = 2
+			rest = name[1:]
+		}
+	}
+
+	end := 0
+	for end < len(rest) && rest[end] >= '0' && rest[end] <= '9' {
+		end++
+	}
+
+	if end > 0 {
+		number, _ = strconv.Atoi(rest[:end]) // rest[:end] contains only digits, so Atoi cannot fail
+	}
+
+	return group, number
+}
+
+// compareLines compares two line names for sorting: U-Bahn first,
+// then trams and buses, then night lines, each by number
+func compareLines(a, b string) int {
+	groupA, numberA := lineSortKey(a)
+	groupB, numberB := lineSortKey(b)
+
+	if groupA != groupB {
+		return groupA - groupB
+	}
+
+	if numberA != numberB {
+		return numberA - numberB
+	}
+
+	return strings.Compare(a, b)
 }
