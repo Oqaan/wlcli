@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image/color"
 	"log"
@@ -9,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/table"
@@ -24,14 +26,28 @@ func main() {
 	log.SetFlags(0) // Disable timestamps in log output
 	log.SetPrefix("wlcli: ")
 
-	if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+	var showVersion bool
+	var watch bool
+	refreshInterval := 30 * time.Second // How often watch mode refreshes
+	watchUsage := fmt.Sprintf("refresh every %s", refreshInterval)
+
+	flag.BoolVar(&showVersion, "version", false, "show version information")
+	flag.BoolVar(&showVersion, "v", false, "show version information")
+	flag.BoolVar(&watch, "watch", false, watchUsage)
+	flag.BoolVar(&watch, "w", false, watchUsage)
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "usage: wlcli [-w | --watch] <stop name>")
+		fmt.Fprintln(os.Stderr, "       wlcli -v | --version")
+	}
+	flag.Parse()
+
+	if showVersion {
 		fmt.Println("wlcli", version())
 		return
 	}
 
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: wlcli <stop name>")
-		fmt.Fprintln(os.Stderr, "       wlcli -v | --version")
+	if len(flag.Args()) == 0 {
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -40,7 +56,7 @@ func main() {
 		log.Fatal(err)
 	}
 	// The shell splits the arguments, so we need to join them back together, e.g. "Kagraner Platz"
-	name := strings.Join(os.Args[1:], " ")
+	name := strings.Join(flag.Args(), " ")
 	ids := findStopIDs(rows, name)
 	if len(ids) == 0 {
 		log.Fatalf("no stop found: %q", name)
@@ -49,54 +65,25 @@ func main() {
 		log.Fatalf("%q matches %d stops (max %d), please be more specific.", name, len(ids), maxStopIDs)
 	}
 
-	result, err := fetchDepartures(ids)
-	if err != nil {
-		log.Fatal(err)
+	if !watch {
+		err = showDepartures(ids)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
 	}
 
-	var tableRows []row
-
-	for _, m := range result.Data.Monitors {
-		for _, l := range m.Lines {
-			var countdowns []string
-			for _, d := range l.Departures.Departure {
-				countdowns = append(countdowns, strconv.Itoa(d.DepartureTime.Countdown))
-				if len(countdowns) >= 3 {
-					break
-				}
-			}
-			tableRows = append(tableRows, row{
-				LineName:   l.Name,
-				Direction:  strings.TrimSpace(l.Towards),
-				Countdowns: countdowns,
-			})
+	for {
+		// Clear the terminal before printing the new table
+		fmt.Print("\033[H\033[2J")
+		// in watch mode errors are only printed, so the next refresh can try again
+		err := showDepartures(ids)
+		if err != nil {
+			log.Print(err)
 		}
+		fmt.Println("updated", time.Now().Format("15:04:05"), "· press Ctrl+C to quit")
+		time.Sleep(refreshInterval)
 	}
-	slices.SortFunc(tableRows, func(a, b row) int {
-		return compareLines(a.LineName, b.LineName)
-	})
-
-	t := table.New()
-	t.Headers("LINE", "DIRECTION", "NEXT")
-	t.Border(lipgloss.RoundedBorder())
-	t.BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("8")))
-	t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
-		style := lipgloss.NewStyle().Padding(0, 1)
-
-		if rowIndex == table.HeaderRow {
-			return style.Bold(true)
-		}
-		if colIndex == 0 {
-			name := tableRows[rowIndex].LineName
-			return style.Bold(true).Foreground(lineColor(name))
-		}
-		return style
-	})
-
-	for _, r := range tableRows {
-		t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
-	}
-	lipgloss.Println(t)
 }
 
 // lineColor returns the official Wiener Linien color for U-Bahn lines
@@ -171,4 +158,57 @@ func compareLines(a, b string) int {
 	}
 
 	return strings.Compare(a, b)
+}
+
+// showDepartures fetches the departures for the given stop IDs and prints them as a table
+func showDepartures(ids []string) error {
+	result, err := fetchDepartures(ids)
+	if err != nil {
+		return err
+	}
+
+	var tableRows []row
+
+	for _, m := range result.Data.Monitors {
+		for _, l := range m.Lines {
+			var countdowns []string
+			for _, d := range l.Departures.Departure {
+				countdowns = append(countdowns, strconv.Itoa(d.DepartureTime.Countdown))
+				if len(countdowns) >= 3 {
+					break
+				}
+			}
+			tableRows = append(tableRows, row{
+				LineName:   l.Name,
+				Direction:  strings.TrimSpace(l.Towards),
+				Countdowns: countdowns,
+			})
+		}
+	}
+	slices.SortFunc(tableRows, func(a, b row) int {
+		return compareLines(a.LineName, b.LineName)
+	})
+
+	t := table.New()
+	t.Headers("LINE", "DIRECTION", "NEXT")
+	t.Border(lipgloss.RoundedBorder())
+	t.BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("8")))
+	t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
+		style := lipgloss.NewStyle().Padding(0, 1)
+
+		if rowIndex == table.HeaderRow {
+			return style.Bold(true)
+		}
+		if colIndex == 0 {
+			name := tableRows[rowIndex].LineName
+			return style.Bold(true).Foreground(lineColor(name))
+		}
+		return style
+	})
+
+	for _, r := range tableRows {
+		t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
+	}
+	lipgloss.Println(t)
+	return nil
 }

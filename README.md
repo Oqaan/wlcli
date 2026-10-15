@@ -31,7 +31,8 @@ source ~/.zshrc
 ## Usage
 
 ```sh
-wlcli <stop name>
+wlcli [-w | --watch] <stop name>
+wlcli -v | --version
 ```
 
 Example:
@@ -57,7 +58,8 @@ wlcli schwedenplatz
 
 `NEXT` shows the next three departures in minutes. In the terminal, U-Bahn lines are shown in their official Wiener Linien colors.
 
-- The search is case-insensitive and matches partial names, so `wlcli kagraner platz` also finds the tram and bus stops named "Kagraner Platz U".
+- `wlcli --watch schwedenplatz` (or `-w`) refreshes the table every 30 seconds until you press Ctrl+C. Options must come before the stop name.
+- The search is case-insensitive. Stops named exactly like the search are preferred (e.g. `wlcli kagran` shows Kagran, not Kagraner Platz). If there is no exact match, partial names are used. Lines are sorted U-Bahn first, then trams and buses, then night lines.
 - Quotes around the stop name are optional: `wlcli Kagraner Platz` and `wlcli "Kagraner Platz"` do the same thing.
 - `wlcli --version` (or `-v`) prints the installed version.
 - Very generic searches (e.g. `platz`) match hundreds of stops. `wlcli` rejects searches with more than 100 matching stop IDs and asks you to be more specific.
