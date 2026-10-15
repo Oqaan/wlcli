@@ -49,54 +49,10 @@ func main() {
 		log.Fatalf("%q matches %d stops (max %d), please be more specific.", name, len(ids), maxStopIDs)
 	}
 
-	result, err := fetchDepartures(ids)
+	err = showDepartures(ids)
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	var tableRows []row
-
-	for _, m := range result.Data.Monitors {
-		for _, l := range m.Lines {
-			var countdowns []string
-			for _, d := range l.Departures.Departure {
-				countdowns = append(countdowns, strconv.Itoa(d.DepartureTime.Countdown))
-				if len(countdowns) >= 3 {
-					break
-				}
-			}
-			tableRows = append(tableRows, row{
-				LineName:   l.Name,
-				Direction:  strings.TrimSpace(l.Towards),
-				Countdowns: countdowns,
-			})
-		}
-	}
-	slices.SortFunc(tableRows, func(a, b row) int {
-		return compareLines(a.LineName, b.LineName)
-	})
-
-	t := table.New()
-	t.Headers("LINE", "DIRECTION", "NEXT")
-	t.Border(lipgloss.RoundedBorder())
-	t.BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("8")))
-	t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
-		style := lipgloss.NewStyle().Padding(0, 1)
-
-		if rowIndex == table.HeaderRow {
-			return style.Bold(true)
-		}
-		if colIndex == 0 {
-			name := tableRows[rowIndex].LineName
-			return style.Bold(true).Foreground(lineColor(name))
-		}
-		return style
-	})
-
-	for _, r := range tableRows {
-		t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
-	}
-	lipgloss.Println(t)
 }
 
 // lineColor returns the official Wiener Linien color for U-Bahn lines
@@ -171,4 +127,57 @@ func compareLines(a, b string) int {
 	}
 
 	return strings.Compare(a, b)
+}
+
+// showDepartures fetches the departures for the given stop IDs and prints them as a table
+func showDepartures(ids []string) error {
+	result, err := fetchDepartures(ids)
+	if err != nil {
+		return err
+	}
+
+	var tableRows []row
+
+	for _, m := range result.Data.Monitors {
+		for _, l := range m.Lines {
+			var countdowns []string
+			for _, d := range l.Departures.Departure {
+				countdowns = append(countdowns, strconv.Itoa(d.DepartureTime.Countdown))
+				if len(countdowns) >= 3 {
+					break
+				}
+			}
+			tableRows = append(tableRows, row{
+				LineName:   l.Name,
+				Direction:  strings.TrimSpace(l.Towards),
+				Countdowns: countdowns,
+			})
+		}
+	}
+	slices.SortFunc(tableRows, func(a, b row) int {
+		return compareLines(a.LineName, b.LineName)
+	})
+
+	t := table.New()
+	t.Headers("LINE", "DIRECTION", "NEXT")
+	t.Border(lipgloss.RoundedBorder())
+	t.BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("8")))
+	t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
+		style := lipgloss.NewStyle().Padding(0, 1)
+
+		if rowIndex == table.HeaderRow {
+			return style.Bold(true)
+		}
+		if colIndex == 0 {
+			name := tableRows[rowIndex].LineName
+			return style.Bold(true).Foreground(lineColor(name))
+		}
+		return style
+	})
+
+	for _, r := range tableRows {
+		t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
+	}
+	lipgloss.Println(t)
+	return nil
 }
