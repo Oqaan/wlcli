@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"image/color"
 	"log"
@@ -24,14 +25,26 @@ func main() {
 	log.SetFlags(0) // Disable timestamps in log output
 	log.SetPrefix("wlcli: ")
 
-	if len(os.Args) == 2 && (os.Args[1] == "-v" || os.Args[1] == "--version") {
+	var showVersion bool
+	var watch bool
+
+	flag.BoolVar(&showVersion, "version", false, "show version information")
+	flag.BoolVar(&showVersion, "v", false, "show version information")
+	flag.BoolVar(&watch, "watch", false, "refresh every 30 seconds")
+	flag.BoolVar(&watch, "w", false, "refresh every 30 seconds")
+	flag.Usage = func() {
+		fmt.Fprintln(os.Stderr, "usage: wlcli [-w | --watch] <stop name>")
+		fmt.Fprintln(os.Stderr, "       wlcli -v | --version")
+	}
+	flag.Parse()
+
+	if showVersion {
 		fmt.Println("wlcli", version())
 		return
 	}
 
-	if len(os.Args) < 2 {
-		fmt.Fprintln(os.Stderr, "usage: wlcli <stop name>")
-		fmt.Fprintln(os.Stderr, "       wlcli -v | --version")
+	if len(flag.Args()) == 0 {
+		flag.Usage()
 		os.Exit(1)
 	}
 
@@ -40,7 +53,7 @@ func main() {
 		log.Fatal(err)
 	}
 	// The shell splits the arguments, so we need to join them back together, e.g. "Kagraner Platz"
-	name := strings.Join(os.Args[1:], " ")
+	name := strings.Join(flag.Args(), " ")
 	ids := findStopIDs(rows, name)
 	if len(ids) == 0 {
 		log.Fatalf("no stop found: %q", name)
