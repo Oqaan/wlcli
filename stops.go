@@ -29,15 +29,27 @@ func loadStops() ([][]string, error) {
 	return rows, nil
 }
 
-// findStopIDs returns the stop IDs of all rows whose name contains name (case-insensitive)
+// findStopIDs returns the stop IDs of all stops matching name (case-insensitive)
+// Stops named exactly name or "name U" are preferred. If there are none, 
+// all stops containing name are returned
 func findStopIDs(rows [][]string, name string) []string {
-	var ids []string
+	var exact []string
+	var partial []string
 	search := strings.ToLower(name)
-	for _, record := range rows[1:] { // Skip the header row
+
+	for _, record := range rows[1:] { // Skip the header row (rows[0])
 		// CSV columns: 0 = StopID, 2 = StopText (name)
-		if strings.Contains(strings.ToLower(record[2]), search) {
-			ids = append(ids, record[0])
+		stopName := strings.ToLower(record[2])
+
+		// U-Bahn platforms are named "X", tram and bus stops at the same station "X U"
+		if stopName == search || stopName == search+" u" {
+			exact = append(exact, record[0])
+		} else if strings.Contains(stopName, search) {
+			partial = append(partial, record[0])
 		}
 	}
-	return ids
+	if len(exact) > 0 {
+		return exact
+	}
+	return partial
 }
