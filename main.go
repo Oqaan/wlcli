@@ -10,6 +10,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
 	"charm.land/lipgloss/v2"
 	"charm.land/lipgloss/v2/table"
@@ -27,11 +28,13 @@ func main() {
 
 	var showVersion bool
 	var watch bool
+	refreshInterval := 30 * time.Second // How often watch mode refreshes
+	watchUsage := fmt.Sprintf("refresh every %s", refreshInterval)
 
 	flag.BoolVar(&showVersion, "version", false, "show version information")
 	flag.BoolVar(&showVersion, "v", false, "show version information")
-	flag.BoolVar(&watch, "watch", false, "refresh every 30 seconds")
-	flag.BoolVar(&watch, "w", false, "refresh every 30 seconds")
+	flag.BoolVar(&watch, "watch", false, watchUsage)
+	flag.BoolVar(&watch, "w", false, watchUsage)
 	flag.Usage = func() {
 		fmt.Fprintln(os.Stderr, "usage: wlcli [-w | --watch] <stop name>")
 		fmt.Fprintln(os.Stderr, "       wlcli -v | --version")
@@ -62,9 +65,24 @@ func main() {
 		log.Fatalf("%q matches %d stops (max %d), please be more specific.", name, len(ids), maxStopIDs)
 	}
 
-	err = showDepartures(ids)
-	if err != nil {
-		log.Fatal(err)
+	if !watch {
+		err = showDepartures(ids)
+		if err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
+	for {
+		// Clear the terminal before printing the new table
+		fmt.Print("\033[H\033[2J")
+		// in watch mode errors are only printed, so the next refresh can try again
+		err := showDepartures(ids)
+		if err != nil {
+			log.Print(err)
+		}
+		fmt.Println("updated", time.Now().Format("15:04:05"), "· press Ctrl+C to quit")
+		time.Sleep(refreshInterval)
 	}
 }
 
