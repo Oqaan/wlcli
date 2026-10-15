@@ -28,6 +28,8 @@ func TestFindStopIDs(t *testing.T) {
 		{"mixed case", "SchWeDeNpLaTz", []string{"4116"}},
 		{"no match", "Nonexistent Stop", []string{}},
 		{"header is not a stop", "text", []string{}},
+		{"exact match preferred", "kagran", []string{"4127"}},
+		{"partial match as fallback", "kagraner", []string{"4181", "885"}},
 	}
 
 	for _, tt := range tests {
