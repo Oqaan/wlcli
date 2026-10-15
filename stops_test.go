@@ -22,12 +22,14 @@ func TestFindStopIDs(t *testing.T) {
 		want   []string
 	}{
 		{"exact name", "Schwedenplatz", []string{"4116"}},
-		{"partial name", "Kagraner Platz", []string{"4181", "885"}},
+		{"exact name with U suffix", "Kagraner Platz", []string{"4181", "885"}},
 		{"lowercase", "schwedenplatz", []string{"4116"}},
 		{"uppercase", "SCHWEDENPLATZ", []string{"4116"}},
 		{"mixed case", "SchWeDeNpLaTz", []string{"4116"}},
 		{"no match", "Nonexistent Stop", []string{}},
 		{"header is not a stop", "text", []string{}},
+		{"exact match preferred", "kagran", []string{"4127"}},
+		{"partial match as fallback", "kagraner", []string{"4181", "885"}},
 	}
 
 	for _, tt := range tests {
