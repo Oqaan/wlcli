@@ -30,7 +30,7 @@ func loadStops() ([][]string, error) {
 }
 
 // findStopIDs returns the stop IDs of all stops matching name (case-insensitive)
-// Stops named exactly name or "name U" are preferred. If there are none, 
+// Stops named exactly name or "name U" are preferred. If there are none,
 // all stops containing name are returned
 func findStopIDs(rows [][]string, name string) []string {
 	var exact []string
