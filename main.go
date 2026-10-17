@@ -236,7 +236,7 @@ func showDepartures(ids []string, withDisruptions bool) error {
 	relevant := relevantTrafficInfos(infos, ids, lines)
 
 	warning := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#E5C07B"))
-	description := lipgloss.NewStyle().Width(70).PaddingLeft(2)
+	description := lipgloss.NewStyle().PaddingLeft(2)
 
 	for _, info := range relevant {
 		title := strings.ReplaceAll(info.Title, "\n", " ")
@@ -244,7 +244,7 @@ func showDepartures(ids []string, withDisruptions bool) error {
 		// many infos repeat the title as description, so only print if it is unique
 		desc := strings.ReplaceAll(info.Description, "\n", " ")
 		if desc != title {
-			lipgloss.Println(description.Render(info.Description))
+			lipgloss.Println(description.Render(lipgloss.Wrap(desc, 60, "")))
 		}
 	}
 
