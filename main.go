@@ -213,6 +213,26 @@ func showDepartures(ids []string) error {
 	return nil
 }
 
+// relevantTrafficInfos returns the traffic infos for the given stops or lines
 func relevantTrafficInfos(infos []TrafficInfo, ids []string, lines []string) []TrafficInfo {
-	return nil
+	var relevant []TrafficInfo
+
+	for _, info := range infos {
+		if len(info.RelatedStops) > 0 {
+			for _, stop := range info.RelatedStops {
+				if slices.Contains(ids, strconv.Itoa(stop)) {
+					relevant = append(relevant, info)
+					break
+				}
+			}
+		} else {
+			for _, line := range info.RelatedLines {
+				if slices.Contains(lines, line) {
+					relevant = append(relevant, info)
+					break
+				}
+			}
+		}
+	}
+	return relevant
 }
