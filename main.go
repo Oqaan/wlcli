@@ -28,6 +28,7 @@ func main() {
 
 	var showVersion bool
 	var watch bool
+	var disruptions bool
 	refreshInterval := 30 * time.Second // How often watch mode refreshes
 	watchUsage := fmt.Sprintf("refresh every %s", refreshInterval)
 
@@ -35,8 +36,10 @@ func main() {
 	flag.BoolVar(&showVersion, "v", false, "show version information")
 	flag.BoolVar(&watch, "watch", false, watchUsage)
 	flag.BoolVar(&watch, "w", false, watchUsage)
+	flag.BoolVar(&disruptions, "disruptions", false, "show disruptions and elevator outages")
+	flag.BoolVar(&disruptions, "d", false, "show disruptions and elevator outages")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: wlcli [-w | --watch] <stop name>")
+		fmt.Fprintln(os.Stderr, "usage: wlcli [-w | --watch] [-d | --disruptions] <stop name>")
 		fmt.Fprintln(os.Stderr, "       wlcli -v | --version")
 	}
 	flag.Parse()
@@ -66,7 +69,7 @@ func main() {
 	}
 
 	if !watch {
-		err = showDepartures(ids)
+		err = showDepartures(ids, disruptions)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -77,7 +80,7 @@ func main() {
 		// Clear the terminal before printing the new table
 		fmt.Print("\033[H\033[2J")
 		// in watch mode errors are only printed, so the next refresh can try again
-		err := showDepartures(ids)
+		err := showDepartures(ids, disruptions)
 		if err != nil {
 			log.Print(err)
 		}
@@ -161,7 +164,7 @@ func compareLines(a, b string) int {
 }
 
 // showDepartures fetches the departures for the given stop IDs and prints them as a table
-func showDepartures(ids []string) error {
+func showDepartures(ids []string, withDisruptions bool) error {
 	result, err := fetchDepartures(ids)
 	if err != nil {
 		return err
@@ -213,6 +216,10 @@ func showDepartures(ids []string) error {
 			t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
 		}
 		lipgloss.Println(t)
+	}
+
+	if !withDisruptions {
+		return nil
 	}
 
 	var lines []string
