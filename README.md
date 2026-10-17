@@ -66,6 +66,8 @@ With `--disruptions` (or `-d`), `wlcli` also shows current disruptions and eleva
   Rettungseinsatz.
 ```
 
+Disruption texts, stop names and directions are provided by Wiener Linien and are in German.
+
 - `wlcli --watch schwedenplatz` (or `-w`) refreshes the table every 30 seconds until you press Ctrl+C. Options must come before the stop name.
 - The search is case-insensitive. Stops named exactly like the search are preferred (e.g. `wlcli kagran` shows Kagran, not Kagraner Platz). If there is no exact match, partial names are used. Lines are sorted U-Bahn first, then trams and buses, then night lines.
 - Quotes around the stop name are optional: `wlcli Kagraner Platz` and `wlcli "Kagraner Platz"` do the same thing.
