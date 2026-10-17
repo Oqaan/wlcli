@@ -28,6 +28,7 @@ func main() {
 
 	var showVersion bool
 	var watch bool
+	var disruptions bool
 	refreshInterval := 30 * time.Second // How often watch mode refreshes
 	watchUsage := fmt.Sprintf("refresh every %s", refreshInterval)
 
@@ -35,8 +36,10 @@ func main() {
 	flag.BoolVar(&showVersion, "v", false, "show version information")
 	flag.BoolVar(&watch, "watch", false, watchUsage)
 	flag.BoolVar(&watch, "w", false, watchUsage)
+	flag.BoolVar(&disruptions, "disruptions", false, "show disruptions and elevator outages")
+	flag.BoolVar(&disruptions, "d", false, "show disruptions and elevator outages")
 	flag.Usage = func() {
-		fmt.Fprintln(os.Stderr, "usage: wlcli [-w | --watch] <stop name>")
+		fmt.Fprintln(os.Stderr, "usage: wlcli [-w | --watch] [-d | --disruptions] <stop name>")
 		fmt.Fprintln(os.Stderr, "       wlcli -v | --version")
 	}
 	flag.Parse()
@@ -66,7 +69,7 @@ func main() {
 	}
 
 	if !watch {
-		err = showDepartures(ids)
+		err = showDepartures(ids, disruptions)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -77,7 +80,7 @@ func main() {
 		// Clear the terminal before printing the new table
 		fmt.Print("\033[H\033[2J")
 		// in watch mode errors are only printed, so the next refresh can try again
-		err := showDepartures(ids)
+		err := showDepartures(ids, disruptions)
 		if err != nil {
 			log.Print(err)
 		}
@@ -161,7 +164,7 @@ func compareLines(a, b string) int {
 }
 
 // showDepartures fetches the departures for the given stop IDs and prints them as a table
-func showDepartures(ids []string) error {
+func showDepartures(ids []string, withDisruptions bool) error {
 	result, err := fetchDepartures(ids)
 	if err != nil {
 		return err
@@ -189,26 +192,85 @@ func showDepartures(ids []string) error {
 		return compareLines(a.LineName, b.LineName)
 	})
 
-	t := table.New()
-	t.Headers("LINE", "DIRECTION", "NEXT")
-	t.Border(lipgloss.RoundedBorder())
-	t.BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("8")))
-	t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
-		style := lipgloss.NewStyle().Padding(0, 1)
+	if len(tableRows) == 0 {
+		fmt.Println("no departures at the moment")
+	} else {
+		t := table.New()
+		t.Headers("LINE", "DIRECTION", "NEXT")
+		t.Border(lipgloss.RoundedBorder())
+		t.BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("8")))
+		t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
+			style := lipgloss.NewStyle().Padding(0, 1)
 
-		if rowIndex == table.HeaderRow {
-			return style.Bold(true)
-		}
-		if colIndex == 0 {
-			name := tableRows[rowIndex].LineName
-			return style.Bold(true).Foreground(lineColor(name))
-		}
-		return style
-	})
+			if rowIndex == table.HeaderRow {
+				return style.Bold(true)
+			}
+			if colIndex == 0 {
+				name := tableRows[rowIndex].LineName
+				return style.Bold(true).Foreground(lineColor(name))
+			}
+			return style
+		})
 
-	for _, r := range tableRows {
-		t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
+		for _, r := range tableRows {
+			t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
+		}
+		lipgloss.Println(t)
 	}
-	lipgloss.Println(t)
+
+	if !withDisruptions {
+		return nil
+	}
+
+	var lines []string
+	for _, r := range tableRows {
+		lines = append(lines, r.LineName)
+	}
+
+	infos, err := fetchTrafficInfos()
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+
+	relevant := relevantTrafficInfos(infos, ids, lines)
+
+	warning := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#E5C07B"))
+	description := lipgloss.NewStyle().Width(70).PaddingLeft(2)
+
+	for _, info := range relevant {
+		title := strings.ReplaceAll(info.Title, "\n", " ")
+		lipgloss.Println(warning.Render("⚠ " + title))
+		// many infos repeat the title as description, so only print if it is unique
+		desc := strings.ReplaceAll(info.Description, "\n", " ")
+		if desc != title {
+			lipgloss.Println(description.Render(info.Description))
+		}
+	}
+
 	return nil
+}
+
+// relevantTrafficInfos returns the traffic infos for the given stops or lines
+func relevantTrafficInfos(infos []TrafficInfo, ids []string, lines []string) []TrafficInfo {
+	var relevant []TrafficInfo
+
+	for _, info := range infos {
+		if len(info.RelatedStops) > 0 {
+			for _, stop := range info.RelatedStops {
+				if slices.Contains(ids, strconv.Itoa(stop)) {
+					relevant = append(relevant, info)
+					break
+				}
+			}
+		} else {
+			for _, line := range info.RelatedLines {
+				if slices.Contains(lines, line) {
+					relevant = append(relevant, info)
+					break
+				}
+			}
+		}
+	}
+	return relevant
 }

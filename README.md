@@ -31,7 +31,7 @@ source ~/.zshrc
 ## Usage
 
 ```sh
-wlcli [-w | --watch] <stop name>
+wlcli [-w | --watch] [-d | --disruptions] <stop name>
 wlcli -v | --version
 ```
 
@@ -58,6 +58,14 @@ wlcli schwedenplatz
 
 `NEXT` shows the next three departures in minutes. In the terminal, U-Bahn lines are shown in their official Wiener Linien colors.
 
+With `--disruptions` (or `-d`), `wlcli` also shows current disruptions and elevator outages that affect the stop or its lines below the table, for example:
+
+```text
+⚠ U1: Rettungseinsatz
+  Linie U1: Unregelmäßige Intervalle in beiden Richtungen. Grund:
+  Rettungseinsatz.
+```
+
 - `wlcli --watch schwedenplatz` (or `-w`) refreshes the table every 30 seconds until you press Ctrl+C. Options must come before the stop name.
 - The search is case-insensitive. Stops named exactly like the search are preferred (e.g. `wlcli kagran` shows Kagran, not Kagraner Platz). If there is no exact match, partial names are used. Lines are sorted U-Bahn first, then trams and buses, then night lines.
 - Quotes around the stop name are optional: `wlcli Kagraner Platz` and `wlcli "Kagraner Platz"` do the same thing.
@@ -69,6 +77,7 @@ wlcli schwedenplatz
 1. Downloads the [list of stops](https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv) and finds all stop IDs whose name contains the search term.
 2. Requests the real-time departures for these stop IDs from the `/monitor` endpoint.
 3. Prints one row per line and direction, sorted by line, as a table rendered with [Lip Gloss](https://github.com/charmbracelet/lipgloss).
+4. With `--disruptions`, requests the current traffic infos from the `/trafficInfoList` endpoint and shows the ones that name one of the found stops, or, if they name no stops, one of the lines in the table.
 
 ## Data source
 
