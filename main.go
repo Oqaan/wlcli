@@ -212,3 +212,7 @@ func showDepartures(ids []string) error {
 	lipgloss.Println(t)
 	return nil
 }
+
+func relevantTrafficInfos(infos []TrafficInfo, ids []string, lines []string) []TrafficInfo {
+	return nil
+}

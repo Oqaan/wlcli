@@ -40,3 +40,25 @@ func TestCompareLines(t *testing.T) {
 		t.Errorf("sorted lines = %v, want %v", lines, want)
 	}
 }
+
+func TestRelevantTrafficInfos(t *testing.T) {
+	infos := []TrafficInfo{
+		{Title: "elevator here", RelatedLines: []string{"U1"}, RelatedStops: []int{4116}},
+		{Title: "elevator elsewhere", RelatedLines: []string{"U1"}, RelatedStops: []int{9999}},
+		{Title: "works on shown line", RelatedLines: []string{"2"}},
+		{Title: "works on other line", RelatedLines: []string{"D"}},
+	}
+	ids := []string{"4116"}
+	lines := []string{"U1", "2"}
+
+	got := relevantTrafficInfos(infos, ids, lines)
+
+	var gotTitles []string
+	for _, info := range got {
+		gotTitles = append(gotTitles, info.Title)
+	}
+	want := []string{"elevator here", "works on shown line"}
+	if !slices.Equal(gotTitles, want) {
+		t.Errorf("relevant titles = %v, want %v", gotTitles, want)
+	}
+}
