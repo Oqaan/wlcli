@@ -189,27 +189,58 @@ func showDepartures(ids []string) error {
 		return compareLines(a.LineName, b.LineName)
 	})
 
-	t := table.New()
-	t.Headers("LINE", "DIRECTION", "NEXT")
-	t.Border(lipgloss.RoundedBorder())
-	t.BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("8")))
-	t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
-		style := lipgloss.NewStyle().Padding(0, 1)
+	if len(tableRows) == 0 {
+		fmt.Println("no departures at the moment")
+	} else {
+		t := table.New()
+		t.Headers("LINE", "DIRECTION", "NEXT")
+		t.Border(lipgloss.RoundedBorder())
+		t.BorderStyle(lipgloss.NewStyle().Foreground(lipgloss.Color("8")))
+		t.StyleFunc(func(rowIndex, colIndex int) lipgloss.Style {
+			style := lipgloss.NewStyle().Padding(0, 1)
 
-		if rowIndex == table.HeaderRow {
-			return style.Bold(true)
-		}
-		if colIndex == 0 {
-			name := tableRows[rowIndex].LineName
-			return style.Bold(true).Foreground(lineColor(name))
-		}
-		return style
-	})
+			if rowIndex == table.HeaderRow {
+				return style.Bold(true)
+			}
+			if colIndex == 0 {
+				name := tableRows[rowIndex].LineName
+				return style.Bold(true).Foreground(lineColor(name))
+			}
+			return style
+		})
 
-	for _, r := range tableRows {
-		t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
+		for _, r := range tableRows {
+			t.Row(r.LineName, r.Direction, strings.Join(r.Countdowns, ", "))
+		}
+		lipgloss.Println(t)
 	}
-	lipgloss.Println(t)
+
+	var lines []string
+	for _, r := range tableRows {
+		lines = append(lines, r.LineName)
+	}
+
+	infos, err := fetchTrafficInfos()
+	if err != nil {
+		log.Print(err)
+		return nil
+	}
+
+	relevant := relevantTrafficInfos(infos, ids, lines)
+
+	warning := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#E5C07B"))
+	description := lipgloss.NewStyle().Width(70).PaddingLeft(2)
+
+	for _, info := range relevant {
+		title := strings.ReplaceAll(info.Title, "\n", " ")
+		lipgloss.Println(warning.Render("⚠ " + title))
+		// many infos repeat the title as description, so only print if it is unique
+		desc := strings.ReplaceAll(info.Description, "\n", " ")
+		if desc != title {
+			lipgloss.Println(description.Render(info.Description))
+		}
+	}
+
 	return nil
 }
 
