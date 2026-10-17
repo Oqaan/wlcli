@@ -31,7 +31,7 @@ source ~/.zshrc
 ## Usage
 
 ```sh
-wlcli [-w | --watch] <stop name>
+wlcli [-w | --watch] [-d | --disruptions] <stop name>
 wlcli -v | --version
 ```
 
@@ -58,7 +58,7 @@ wlcli schwedenplatz
 
 `NEXT` shows the next three departures in minutes. In the terminal, U-Bahn lines are shown in their official Wiener Linien colors.
 
-Below the table, `wlcli` shows current disruptions and elevator outages that affect the stop or its lines, for example:
+With `--disruptions` (or `-d`), `wlcli` also shows current disruptions and elevator outages that affect the stop or its lines below the table, for example:
 
 ```text
 ⚠ U1: Rettungseinsatz
@@ -77,7 +77,7 @@ Below the table, `wlcli` shows current disruptions and elevator outages that aff
 1. Downloads the [list of stops](https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv) and finds all stop IDs whose name contains the search term.
 2. Requests the real-time departures for these stop IDs from the `/monitor` endpoint.
 3. Prints one row per line and direction, sorted by line, as a table rendered with [Lip Gloss](https://github.com/charmbracelet/lipgloss).
-4. Requests the current traffic infos from the `/trafficInfoList` endpoint and shows the ones that name one of the found stops, or, if they name no stops, one of the lines in the table.
+4. With `--disruptions`, requests the current traffic infos from the `/trafficInfoList` endpoint and shows the ones that name one of the found stops, or, if they name no stops, one of the lines in the table.
 
 ## Data source
 
