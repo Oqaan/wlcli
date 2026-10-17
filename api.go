@@ -45,6 +45,21 @@ type DepartureTime struct {
 	Countdown int `json:"countdown"`
 }
 
+type TrafficInfoResponse struct {
+	Data TrafficInfoData `json:"data"`
+}
+
+type TrafficInfoData struct {
+	TrafficInfos []TrafficInfo `json:"trafficInfos"`
+}
+
+type TrafficInfo struct {
+	Title        string   `json:"title"`
+	Description  string   `json:"description"`
+	RelatedLines []string `json:"relatedLines"`
+	RelatedStops []int    `json:"relatedStops"`
+}
+
 // client is a shared HTTP client with a timeout to avoid hanging requests
 var client = &http.Client{Timeout: 10 * time.Second}
 
@@ -76,4 +91,28 @@ func fetchDepartures(ids []string) (MonitorResponse, error) {
 		return MonitorResponse{}, fmt.Errorf("unmarshaling departure response: %w", err)
 	}
 	return result, nil
+}
+
+// fetchTrafficInfos requests all current traffic infos (disruptions, elevator outages)
+func fetchTrafficInfos() ([]TrafficInfo, error) {
+	apiURL := "https://www.wienerlinien.at/ogd_realtime/trafficInfoList"
+
+	resp, err := client.Get(apiURL)
+	if err != nil {
+		return nil, fmt.Errorf("fetching traffic info: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("fetching traffic info: unexpected status %s", resp.Status)
+	}
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("reading traffic info: %w", err)
+	}
+	var result TrafficInfoResponse
+	err = json.Unmarshal(body, &result)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling traffic info: %w", err)
+	}
+	return result.Data.TrafficInfos, nil
 }
