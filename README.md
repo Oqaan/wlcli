@@ -45,14 +45,14 @@ wlcli schwedenplatz
 ╭──────┬────────────────────────┬────────────╮
 │ LINE │ DIRECTION              │ NEXT       │
 ├──────┼────────────────────────┼────────────┤
-│ 1    │ Stefan-Fadinger-Platz  │ 0, 10, 16  │
-│ 1    │ Prater Hauptallee      │ 0, 11, 23  │
-│ 2    │ Friedrich-Engels-Platz │ 10, 20, 30 │
-│ 2    │ Dornbach               │ 1, 13, 25  │
 │ U1   │ Leopoldau              │ 3, 11, 19  │
 │ U1   │ Oberlaa                │ 4, 13, 19  │
 │ U4   │ Heiligenstadt          │ 1, 8, 15   │
 │ U4   │ Hütteldorf             │ 6, 13, 20  │
+│ 1    │ Stefan-Fadinger-Platz  │ 0, 10, 16  │
+│ 1    │ Prater Hauptallee      │ 0, 11, 23  │
+│ 2    │ Friedrich-Engels-Platz │ 10, 20, 30 │
+│ 2    │ Dornbach               │ 1, 13, 25  │
 ╰──────┴────────────────────────┴────────────╯
 ```
 
@@ -76,7 +76,7 @@ Disruption texts, stop names and directions are provided by Wiener Linien and ar
 
 ## How it works
 
-1. Downloads the [list of stops](https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv) and finds all stop IDs whose name contains the search term.
+1. Downloads the [list of stops](https://www.wienerlinien.at/ogd_realtime/doku/ogd/wienerlinien-ogd-haltepunkte.csv) and finds the stop IDs whose name matches the search term exactly, or, if there are none, whose name contains it.
 2. Requests the real-time departures for these stop IDs from the `/monitor` endpoint.
 3. Prints one row per line and direction, sorted by line, as a table rendered with [Lip Gloss](https://github.com/charmbracelet/lipgloss).
 4. With `--disruptions`, requests the current traffic infos from the `/trafficInfoList` endpoint and shows the ones that name one of the found stops, or, if they name no stops, one of the lines in the table.
