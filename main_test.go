@@ -44,11 +44,12 @@ func TestCompareLines(t *testing.T) {
 func TestRelevantTrafficInfos(t *testing.T) {
 	infos := []TrafficInfo{
 		{Title: "elevator here", RelatedLines: []string{"U1"}, RelatedStops: []int{4116}},
+		{Title: "elevator here", RelatedLines: []string{"U1"}, RelatedStops: []int{4117}},
 		{Title: "elevator elsewhere", RelatedLines: []string{"U1"}, RelatedStops: []int{9999}},
 		{Title: "works on shown line", RelatedLines: []string{"2"}},
 		{Title: "works on other line", RelatedLines: []string{"D"}},
 	}
-	ids := []string{"4116"}
+	ids := []string{"4116", "4117"}
 	lines := []string{"U1", "2"}
 
 	got := relevantTrafficInfos(infos, ids, lines)
