@@ -239,10 +239,10 @@ func showDepartures(ids []string, withDisruptions bool) error {
 	description := lipgloss.NewStyle().PaddingLeft(2)
 
 	for _, info := range relevant {
-		title := strings.ReplaceAll(info.Title, "\n", " ")
+		title := normalizeText(info.Title)
 		lipgloss.Println(warning.Render("⚠ " + title))
 		// many infos repeat the title as description, so only print if it is unique
-		desc := strings.ReplaceAll(info.Description, "\n", " ")
+		desc := normalizeText(info.Description)
 		if desc != title {
 			lipgloss.Println(description.Render(lipgloss.Wrap(desc, 60, "")))
 		}
@@ -278,7 +278,7 @@ func relevantTrafficInfos(infos []TrafficInfo, ids []string, lines []string) []T
 		if !match {
 			continue
 		}
-		key := info.Title + "\n" + info.Description
+		key := normalizeText(info.Title) + "\n" + normalizeText(info.Description)
 		if seen[key] {
 			continue
 		}
@@ -286,4 +286,9 @@ func relevantTrafficInfos(infos []TrafficInfo, ids []string, lines []string) []T
 		relevant = append(relevant, info)
 	}
 	return relevant
+}
+
+// normalizeText joins all words with single spaces, so line breaks and repeated spaces don't matter
+func normalizeText(s string) string {
+	return strings.Join(strings.Fields(s), " ")
 }
