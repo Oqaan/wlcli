@@ -251,26 +251,39 @@ func showDepartures(ids []string, withDisruptions bool) error {
 	return nil
 }
 
-// relevantTrafficInfos returns the traffic infos for the given stops or lines
+// relevantTrafficInfos returns the traffic infos for the given stops or lines.
+// The API has one entry per stop, so infos with the same text are only returned once.
 func relevantTrafficInfos(infos []TrafficInfo, ids []string, lines []string) []TrafficInfo {
 	var relevant []TrafficInfo
+	seen := make(map[string]bool)
 
 	for _, info := range infos {
+		match := false
+
 		if len(info.RelatedStops) > 0 {
 			for _, stop := range info.RelatedStops {
 				if slices.Contains(ids, strconv.Itoa(stop)) {
-					relevant = append(relevant, info)
+					match = true
 					break
 				}
 			}
 		} else {
 			for _, line := range info.RelatedLines {
 				if slices.Contains(lines, line) {
-					relevant = append(relevant, info)
+					match = true
 					break
 				}
 			}
 		}
+		if !match {
+			continue
+		}
+		key := info.Title + "\n" + info.Description
+		if seen[key] {
+			continue
+		}
+		seen[key] = true
+		relevant = append(relevant, info)
 	}
 	return relevant
 }
